@@ -777,10 +777,10 @@ class AppController {
     }
 
     if (this.strobeCallerName) {
-      this.strobeCallerName.textContent = operatorName || 'Sargento 1ro M. TORRES VALDES';
+      this.strobeCallerName.textContent = operatorName || 'Unidad Policial (Desconocida)';
     }
     if (this.strobeSenderId) {
-      const hashStr = (operatorName || 'TORRES').toUpperCase().replace(/[^A-Z]/g, '');
+      const hashStr = (operatorName || 'UNIDAD').toUpperCase().replace(/[^A-Z]/g, '');
       const numCode = Math.abs(hashStr.split('').reduce((a, b) => (((a << 5) - a) + b.charCodeAt(0)) | 0, 78292)).toString().slice(0, 5);
       this.strobeSenderId.textContent = `ID: SF-${numCode || '78292'}-MX`;
     }
@@ -873,7 +873,7 @@ class AppController {
       return;
     }
 
-    this.feedContainer.innerHTML = history.map(item => {
+    this.feedContainer.innerHTML = history.map((item, index) => {
       const isRed = item.alertType === 'cooperacion';
       const isBlue = item.alertType === 'guardia';
 
@@ -1034,7 +1034,8 @@ class AppController {
   }
   openTacticalRouteFromFeed(index) {
     window.audioService.playTacticalClick();
-    const alertData = window.networkService.history[index];
+    const history = window.networkService.getAlertHistory();
+    const alertData = history[index];
     if (alertData && this.tacticalMapService) {
       this.showView('map');
       this.tacticalMapService.setEmergencyTarget(alertData);
@@ -1084,13 +1085,14 @@ class AppController {
     
     let alertData = alertDataOrIndex;
     if (typeof alertDataOrIndex === 'number') {
-      alertData = window.networkService.history[alertDataOrIndex];
+      const history = window.networkService.getAlertHistory();
+      alertData = history[alertDataOrIndex];
     } else if (!alertData) {
       alertData = this.lastAlertSentOrReceived;
     }
 
     // Registrar despliegue en la alerta y en la red
-    const responderName = this.operatorName || 'Sargento Torres (Móvil Policial)';
+    const responderName = (this.currentUser && this.currentUser.fullName) ? this.currentUser.fullName : 'Móvil Policial';
     if (alertData) {
       alertData.responders = alertData.responders || [];
       if (!alertData.responders.includes(responderName)) {
@@ -1122,8 +1124,7 @@ class AppController {
       this.tacticalMapService.setEmergencyTarget(alertData);
     }
 
-    // Confirmación y actualización de feed
-    alert(`🚨 ¡DESPLIEGUE EN CAMINO REGISTRADO!\n\nEl funcionario ${responderName} ha quedado confirmado en ruta hacia el auxilio de ${alertData ? alertData.operatorName : 'la unidad'}.\n\nSe está proyectando la ruta por calles en el Mapa Táctico.`);
+    // Actualización de feed silenciosa (sin alert invasivo que interrumpa la PWA)
     this.renderAlertsFeed();
   }
 }
@@ -1490,7 +1491,7 @@ class TacticalMapService {
     // Mostrar cajas HUD y botones
     if (this.routeSummaryBox) this.routeSummaryBox.classList.remove('hidden');
     
-    const operatorName = (this.app && this.app.operatorName) ? this.app.operatorName : 'Sargento Torres (Móvil Policial)';
+    const operatorName = (this.app && this.app.currentUser && this.app.currentUser.fullName) ? this.app.currentUser.fullName : 'Móvil Policial';
     const alreadyConfirmed = alertData && alertData.responders && alertData.responders.includes(operatorName);
     if (this.mapDespliegueBox) {
       if (alreadyConfirmed) {
