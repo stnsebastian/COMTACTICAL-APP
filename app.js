@@ -792,11 +792,7 @@ class AppController {
         if (this.btnStrobeOpenMap && isReceiver) {
           this.btnStrobeOpenMap.classList.remove('hidden');
           this.btnStrobeOpenMap.onclick = () => {
-            window.audioService.playTacticalClick();
-            if (this.strobeModal) this.strobeModal.classList.add('hidden');
-            window.audioService.stopAlarm();
-            this.showView('map');
-            if (this.tacticalMapService) this.tacticalMapService.setEmergencyTarget(alertData);
+            this.triggerDespliegueEnCamino(alertData, true);
           };
         }
       } else if (location && location.lat) {
@@ -804,11 +800,7 @@ class AppController {
         if (this.btnStrobeOpenMap && isReceiver) {
           this.btnStrobeOpenMap.classList.remove('hidden');
           this.btnStrobeOpenMap.onclick = () => {
-            window.audioService.playTacticalClick();
-            if (this.strobeModal) this.strobeModal.classList.add('hidden');
-            window.audioService.stopAlarm();
-            this.showView('map');
-            if (this.tacticalMapService) this.tacticalMapService.setEmergencyTarget(alertData);
+            this.triggerDespliegueEnCamino(alertData, true);
           };
         } else if (this.btnStrobeOpenMap) {
           this.btnStrobeOpenMap.classList.add('hidden');
@@ -1108,9 +1100,7 @@ class AppController {
       }
     }
 
-    // Ocultar (borrar) inmediatamente el botón en el mapa una vez confirmado
-    const mapDespliegueBox = document.getElementById('map-despliegue-box');
-    if (mapDespliegueBox) mapDespliegueBox.classList.add('hidden');
+    // (Botón mapDespliegueBox eliminado del mapa inferior)
 
     // Si estamos en el modal de baliza, apagar la alarma y ocultar el modal para ir al mapa
     if (fromModal || (this.strobeModal && !this.strobeModal.classList.contains('hidden'))) {
