@@ -39,7 +39,7 @@ class GeoService {
 
       const options = {
         enableHighAccuracy: true,
-        timeout: 6000,
+        timeout: 15000,
         maximumAge: 0
       };
 
@@ -80,15 +80,15 @@ class GeoService {
    * Coordenadas tácticas simuladas en caso de entorno de prueba sin GPS real
    */
   getSimulatedTacticalCoords() {
-    const lat = -33.4489 + (Math.random() - 0.5) * 0.01;
-    const lng = -70.6693 + (Math.random() - 0.5) * 0.01;
+    const lat = -35.5925; // Base BICRIM San Javier
+    const lng = -71.7315;
     const mapUrl = `https://www.google.com/maps?q=${lat.toFixed(5)},${lng.toFixed(5)}`;
     
     return {
       lat: lat,
       lng: lng,
-      accuracy: 15,
-      label: `GPS Táctico: ${lat.toFixed(5)}, ${lng.toFixed(5)} (±15m)`,
+      accuracy: 50,
+      label: `GPS Base: ${lat.toFixed(5)}, ${lng.toFixed(5)} (±50m)`,
       isGuardia: false,
       mapUrl: mapUrl
     };

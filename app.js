@@ -791,17 +791,23 @@ class AppController {
         this.strobeLocationText.innerHTML = `<span class="loc-coords">📍 SERVICIO DE GUARDIA DE LA UNIDAD</span><span class="loc-precision">Base Central</span>`;
         if (this.btnStrobeOpenMap && isReceiver) {
           this.btnStrobeOpenMap.classList.remove('hidden');
-          this.btnStrobeOpenMap.onclick = () => {
+          const triggerFn = (e) => {
+            if (e) e.preventDefault();
             this.triggerDespliegueEnCamino(alertData, true);
           };
+          this.btnStrobeOpenMap.onclick = triggerFn;
+          this.btnStrobeOpenMap.ontouchstart = triggerFn;
         }
       } else if (location && location.lat) {
         this.strobeLocationText.innerHTML = `<span class="loc-coords">📍 ${location.lat.toFixed(4)}° N, ${location.lng.toFixed(4)}° W</span><span class="loc-precision">Precisión: ±${location.accuracy || 3.2}m</span>`;
         if (this.btnStrobeOpenMap && isReceiver) {
           this.btnStrobeOpenMap.classList.remove('hidden');
-          this.btnStrobeOpenMap.onclick = () => {
+          const triggerFn = (e) => {
+            if (e) e.preventDefault();
             this.triggerDespliegueEnCamino(alertData, true);
           };
+          this.btnStrobeOpenMap.onclick = triggerFn;
+          this.btnStrobeOpenMap.ontouchstart = triggerFn;
         } else if (this.btnStrobeOpenMap) {
           this.btnStrobeOpenMap.classList.add('hidden');
         }
