@@ -1154,9 +1154,7 @@ class TacticalMapService {
     this.currentTargetCoords = null;
 
     // Patrullas policiales conectadas en terreno para radar en vivo
-    this.patrolUnits = [
-      { id: 'SF-HQ', name: 'Guardia Cuartel BICRIM San Javier', lat: -35.5925, lng: -71.7315, status: '🔵 Base Central y Comando', distKm: 0.0 }
-    ];
+    this.patrolUnits = [];
 
     this.cacheUI();
     this.bindEvents();
