@@ -1230,9 +1230,32 @@ class TacticalMapService {
   }
 
   renderSelfMarker() {
-    // DESHABILITADO: El usuario solicitó no mostrar el pin "TÚ (MI PATRULLA)" por defecto,
-    // solo se mostrarán los marcadores de la emergencia y demás unidades conectadas.
-    return;
+    if (!this.map || !window.L) return;
+
+    if (this.selfMarker) {
+      this.map.removeLayer(this.selfMarker);
+    }
+
+    const selfHtml = `
+      <div style="background: rgba(14,20,31,0.95); border: 2px solid #0ea5e9; border-radius: 50px; padding: 4px 10px; display: flex; align-items: center; gap: 6px; box-shadow: 0 0 15px rgba(14,165,233,0.5); white-space: nowrap; transform: translate(-50%, -50%);">
+        <span style="display:inline-block; width:10px; height:10px; background:#38bdf8; border-radius:50%; box-shadow:0 0 8px #38bdf8;"></span>
+        <span style="color:white; font-size:11px; font-weight:800; letter-spacing:0.5px;">TÚ (MI PATRULLA)</span>
+      </div>
+    `;
+
+    const selfIcon = L.divIcon({
+      className: 'custom-tactical-pin',
+      html: selfHtml,
+      iconSize: [120, 30],
+      iconAnchor: [60, 15]
+    });
+
+    this.selfMarker = L.marker([this.currentSelfCoords.lat, this.currentSelfCoords.lng], { icon: selfIcon })
+      .addTo(this.map)
+      .bindPopup(`
+        <div class="marker-popup-title">🚓 TÚ (MI PATRULLA)</div>
+        <div class="marker-popup-status">🟢 UNIDAD EN LÍNEA</div>
+      `);
   }
 
   renderConnectedPatrols() {
