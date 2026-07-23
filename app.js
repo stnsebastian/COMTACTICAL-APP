@@ -1209,8 +1209,8 @@ class TacticalMapService {
         attributionControl: false
       }).setView([this.currentSelfCoords.lat, this.currentSelfCoords.lng], 15);
 
-      // CartoDB Dark Matter Base Tiles (Especial Modo Sigilo y Alta Legibilidad)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      // CartoDB Positron (Light) - Será invertido por CSS para modo táctico con letras blancas
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
         subdomains: 'abcd'
       }).addTo(this.map);
@@ -1509,19 +1509,7 @@ class TacticalMapService {
 
     const tIcon = L.divIcon({ className: '', html: targetHtml, iconSize: [180, 36], iconAnchor: [90, 18] });
 
-    this.targetMarker = L.marker([targetLat, targetLng], { icon: tIcon })
-      .addTo(this.map)
-      .bindPopup(`
-        <div class="marker-popup-title" style="color:${badgeColor};">${badgeLabel}</div>
-        <div class="marker-popup-sub">Funcionario: ${alertData.operatorName || 'Oficial de Policía'}</div>
-        <div class="marker-popup-status" style="color:#ff2a55;">🚨 SOLICITUD DE INTERCEPCIÓN Y APOYO</div>
-        <div class="popup-nav-grid">
-          <button onclick="window.sajauxApp.openExternalNav('google', ${targetLat}, ${targetLng})" class="popup-nav-btn btn-google">🌐 Google</button>
-          <button onclick="window.sajauxApp.openExternalNav('waze', ${targetLat}, ${targetLng})" class="popup-nav-btn btn-waze">🚗 Waze</button>
-          <button onclick="window.sajauxApp.openExternalNav('petal', ${targetLat}, ${targetLng})" class="popup-nav-btn btn-petal">🌸 Petal</button>
-        </div>
-      `)
-      .openPopup();
+    this.targetMarker = L.marker([targetLat, targetLng], { icon: tIcon }).addTo(this.map);
 
     // Mostrar cajas HUD y botones
     if (this.routeSummaryBox) this.routeSummaryBox.classList.remove('hidden');
@@ -1540,6 +1528,15 @@ class TacticalMapService {
       this.targetInfoBox.classList.remove('hidden');
       if (this.targetNameElem) this.targetNameElem.textContent = `🚨 AUXILIO: ${alertData.operatorName || 'OPERADOR'}`;
       if (this.targetDescElem) this.targetDescElem.textContent = `${badgeLabel} • Coordenadas satelitales verificadas.`;
+      
+      const navAppsContainer = document.getElementById('map-target-nav-apps');
+      if (navAppsContainer) {
+        navAppsContainer.innerHTML = `
+          <button onclick="window.sajauxApp.openExternalNav('google', ${targetLat}, ${targetLng})" class="popup-nav-btn btn-google" style="flex: 1; padding: 6px; font-size: 11px;">🌐 Google</button>
+          <button onclick="window.sajauxApp.openExternalNav('waze', ${targetLat}, ${targetLng})" class="popup-nav-btn btn-waze" style="flex: 1; padding: 6px; font-size: 11px;">🚗 Waze</button>
+          <button onclick="window.sajauxApp.openExternalNav('petal', ${targetLat}, ${targetLng})" class="popup-nav-btn btn-petal" style="flex: 1; padding: 6px; font-size: 11px;">🌸 Petal</button>
+        `;
+      }
     }
     if (this.btnCenterTarget) this.btnCenterTarget.classList.remove('hidden');
 

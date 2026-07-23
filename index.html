@@ -15,7 +15,7 @@
   <link rel="icon" type="image/svg+xml" href="./icon-192.svg">
   
   <!-- Hojas de estilo -->
-  <link rel="stylesheet" href="./styles.css?v=2">
+  <link rel="stylesheet" href="./styles.css?v=3">
   
   <!-- Leaflet CSS & JS para Mapa Táctico GPS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -229,6 +229,10 @@
             </div>
           </div>
           <div class="map-target-desc" id="map-target-desc">Calculando mejor ruta de intercepción...</div>
+          
+          <div class="map-target-nav-apps" id="map-target-nav-apps" style="display: flex; gap: 8px; margin-top: 10px; justify-content: space-around;">
+            <!-- Botones inyectados dinámicamente -->
+          </div>
         </div>
       </div>
 
@@ -363,7 +367,7 @@
   <script src="./audio-service.js"></script>
   <script src="./geo-service.js"></script>
   <script src="./network-service.js"></script>
-  <script src="./app.js"></script>
+  <script src="./app.js?v=3"></script>
   <script>
     // Registro y actualización proactiva de Service Worker PWA SAJAUX
     if ('serviceWorker' in navigator) {

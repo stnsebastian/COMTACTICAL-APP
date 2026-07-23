@@ -2044,6 +2044,16 @@ input:checked + .switch-slider:before {
   gap: 4px;
 }
 
+/* 
+ * TRUCO PARA LETRAS BLANCAS EN MAPA TÁCTICO:
+ * Usamos el mapa base claro (CartoDB Positron) y lo invertimos.
+ * El fondo casi blanco se vuelve oscuro, los caminos oscuros,
+ * y los textos negros/gris oscuro se vuelven BLANCOS brillantes.
+ */
+.leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(110%);
+}
+
 .board-title {
   font-size: 10px;
   font-weight: 900;
