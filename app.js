@@ -912,9 +912,21 @@ class AppController {
       let locationHtml = '';
       if (item.location && item.location.isGuardia) {
         locationHtml = `
-          <div class="guardia-location-pill" onclick="window.sajauxApp.openTacticalRouteFromFeed(${index})" style="cursor:pointer;" title="Ver en Mapa Táctico">
-            <span>🛡️</span>
-            <span>SERVICIO DE GUARDIA DE LA UNIDAD • 🧭 VER RUTA</span>
+          <div class="alert-location-box" style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+              <div class="alert-location-text" style="color: #60a5fa;">
+                <span>🛡️</span>
+                <span>CUARTEL BICRIM: Chorrillos 1158</span>
+              </div>
+              <button onclick="window.sajauxApp.openTacticalRouteFromFeed(${index})" class="btn-nav-map" style="border:none; cursor:pointer;" title="Ver en Mapa Táctico">
+                <span>🧭 VER MAPA</span>
+              </button>
+            </div>
+            <div class="alert-ext-apps">
+              <button onclick="window.sajauxApp.openExternalNav('google', ${item.location.lat}, ${item.location.lng})" class="mini-app-btn btn-google" title="Abrir en Google Maps">🌐 Google</button>
+              <button onclick="window.sajauxApp.openExternalNav('waze', ${item.location.lat}, ${item.location.lng})" class="mini-app-btn btn-waze" title="Abrir en Waze">🚗 Waze</button>
+              <button onclick="window.sajauxApp.openExternalNav('petal', ${item.location.lat}, ${item.location.lng})" class="mini-app-btn btn-petal" title="Abrir en Petal Maps">🌸 Petal</button>
+            </div>
           </div>
         `;
       } else if (item.location && item.location.mapUrl) {

@@ -47,12 +47,12 @@ class GeoService {
     // REGLA CLAVE: LA COOPERACIÓN SERVICIO DE GUARDIA NO DEBE ENVIAR LA UBICACIÓN GPS
     if (alertType === 'guardia') {
       return {
-        lat: null,
-        lng: null,
-        accuracy: null,
-        label: '📍 SERVICIO DE GUARDIA DE LA UNIDAD',
+        lat: -35.5925,
+        lng: -71.7315,
+        accuracy: 1,
+        label: '📍 CUARTEL BICRIM: Chorrillos 1158, San Javier',
         isGuardia: true,
-        mapUrl: null
+        mapUrl: 'https://www.google.com/maps?q=-35.5925,-71.7315'
       };
     }
 
