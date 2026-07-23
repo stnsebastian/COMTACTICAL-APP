@@ -50,7 +50,7 @@ class GeoService {
         lat: -35.5925,
         lng: -71.7315,
         accuracy: 1,
-        label: '📍 CUARTEL BICRIM: Chorrillos 1158, San Javier',
+        label: '📍 CUARTEL BICRIM: Chorrillos 1581, San Javier',
         isGuardia: true,
         mapUrl: 'https://www.google.com/maps?q=-35.5925,-71.7315'
       };

@@ -916,7 +916,7 @@ class AppController {
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
               <div class="alert-location-text" style="color: #60a5fa;">
                 <span>🛡️</span>
-                <span>CUARTEL BICRIM: Chorrillos 1158</span>
+                <span>CUARTEL BICRIM: Chorrillos 1581</span>
               </div>
               <button onclick="window.sajauxApp.openTacticalRouteFromFeed(${index})" class="btn-nav-map" style="border:none; cursor:pointer;" title="Ver en Mapa Táctico">
                 <span>🧭 VER MAPA</span>
