@@ -50,13 +50,7 @@ class AppController {
     this.btnCooperacion = document.getElementById('btn-sos-cooperacion');
     this.btnGuardia = document.getElementById('btn-sos-guardia');
 
-    // Grabador PTT en dashboard
-    this.btnPTT = document.getElementById('btn-ptt');
-    this.pttText = document.getElementById('ptt-text');
-    this.audioPreviewContainer = document.getElementById('audio-preview-container');
-    this.audioPlayerElem = document.getElementById('ptt-audio-player');
-    this.btnDiscardAudio = document.getElementById('btn-discard-audio');
-    this.btnBroadcastPTT = document.getElementById('btn-broadcast-ptt');
+
 
     // Strobe PTT Grabador en vivo
     this.btnStrobePTT = document.getElementById('btn-strobe-ptt');
@@ -90,7 +84,6 @@ class AppController {
     // WhatsApp elementos opcionales
     this.loginWhatsappToggle = document.getElementById('login-whatsapp-toggle');
     this.dashboardWhatsappToggle = document.getElementById('dashboard-whatsapp-toggle');
-    this.btnWhatsappResend = document.getElementById('btn-whatsapp-resend');
 
     // PWA Instalador elementos
     this.pwaInstallBannerLogin = document.getElementById('pwa-install-banner-login');
@@ -163,30 +156,6 @@ class AppController {
       this.btnGuardia.addEventListener('click', () => this.triggerEmergency('guardia'));
     }
 
-    // PTT Grabador (Soporte táctil dual: Mantener presionado para hablar o Tocar para alternar)
-    if (this.btnPTT) {
-      this.bindTacticalPTTButton(this.btnPTT, false);
-    }
-    if (this.btnDiscardAudio) {
-      this.btnDiscardAudio.addEventListener('click', () => {
-        this.currentAudioNote = null;
-        if (this.audioPreviewContainer) this.audioPreviewContainer.classList.add('hidden');
-        if (this.audioPlayerElem) this.audioPlayerElem.src = '';
-      });
-    }
-    if (this.btnBroadcastPTT) {
-      this.btnBroadcastPTT.addEventListener('click', () => {
-        if (this.currentAudioNote && this.currentAudioNote.base64Url) {
-          this.transmitDirectVoiceNote(this.currentAudioNote);
-          this.currentAudioNote = null;
-          if (this.audioPreviewContainer) this.audioPreviewContainer.classList.add('hidden');
-          if (this.audioPlayerElem) this.audioPlayerElem.src = '';
-        } else {
-          alert('No hay una nota de voz grabada para transmitir.');
-        }
-      });
-    }
-
     // PTT Grabador dentro del Modal de Alerta (Strobe PTT)
     if (this.btnStrobePTT) {
       this.bindTacticalPTTButton(this.btnStrobePTT, true);
@@ -248,18 +217,17 @@ class AppController {
         this.updateWhatsAppPreference(e.target.checked);
       });
     }
-    if (this.btnWhatsappResend) {
-      this.btnWhatsappResend.addEventListener('click', () => {
-        if (this.lastAlertSentOrReceived) {
-          const { alertType, operatorName, location } = this.lastAlertSentOrReceived;
-          this.sendToWhatsApp(alertType, location, operatorName);
-        }
-      });
-    }
 
-    // Detener alarma desde el Modal Estroboscópico
+    // Detener alarma desde el Modal Estroboscópico (Slide to deactivate)
     if (this.btnStopAlarm) {
-      this.btnStopAlarm.addEventListener('click', () => {
+      const thumb = this.btnStopAlarm.querySelector('.slider-thumb');
+      const slider = this.btnStopAlarm.querySelector('.strobe-deactivate-slider');
+      
+      const executeStopAlarm = () => {
+        if (thumb) {
+          thumb.style.transition = 'transform 0.3s ease';
+          thumb.style.transform = 'translateX(0px)';
+        }
         if (this.activeStrobeAlert && this.activeStrobeAlert.id) {
           this.stoppedAlertId = this.activeStrobeAlert.id;
         } else if (this.lastAlertSentOrReceived && this.lastAlertSentOrReceived.id) {
@@ -281,7 +249,53 @@ class AppController {
           this.strobeModal.className = 'strobe-modal hidden';
         }
         this.activeStrobeAlert = null;
-      });
+      };
+
+      if (thumb && slider) {
+        let isDragging = false;
+        let startX = 0;
+        let maxDrag = 0;
+
+        const onDragStart = (e) => {
+          isDragging = true;
+          startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+          maxDrag = slider.clientWidth - thumb.clientWidth - 10;
+          thumb.style.transition = 'none';
+        };
+
+        const onDragMove = (e) => {
+          if (!isDragging) return;
+          let currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+          let dragDist = currentX - startX;
+          
+          if (dragDist < 0) dragDist = 0;
+          if (dragDist > maxDrag) dragDist = maxDrag;
+          
+          thumb.style.transform = `translateX(${dragDist}px)`;
+          
+          if (dragDist >= maxDrag * 0.85) {
+            isDragging = false;
+            executeStopAlarm();
+          }
+        };
+
+        const onDragEnd = () => {
+          if (!isDragging) return;
+          isDragging = false;
+          thumb.style.transition = 'transform 0.3s ease';
+          thumb.style.transform = 'translateX(0px)';
+        };
+
+        thumb.addEventListener('mousedown', onDragStart);
+        document.addEventListener('mousemove', onDragMove);
+        document.addEventListener('mouseup', onDragEnd);
+
+        thumb.addEventListener('touchstart', onDragStart, {passive: true});
+        document.addEventListener('touchmove', onDragMove, {passive: true});
+        document.addEventListener('touchend', onDragEnd);
+      } else {
+        this.btnStopAlarm.addEventListener('click', executeStopAlarm);
+      }
     }
   }
 
@@ -808,10 +822,6 @@ class AppController {
 
 
     this.lastAlertSentOrReceived = alertData;
-    if (this.btnWhatsappResend) {
-      this.btnWhatsappResend.classList.remove('hidden');
-    }
-
     if (this.audioTimers && this.audioTimers.length > 0) {
       this.audioTimers.forEach(t => clearTimeout(t));
     }
@@ -1085,6 +1095,14 @@ class AppController {
       alertData.responders = alertData.responders || [];
       if (!alertData.responders.includes(responderName)) {
         alertData.responders.push(responderName);
+        // Guardar la actualización en memoria local e historial
+        window.networkService.saveToLocalHistory(alertData);
+        // Emitir la alerta actualizada a la red para que los demás vean la concurrencia
+        if (window.networkService.mqttClient && window.networkService.isCloudConnected) {
+          try {
+            window.networkService.mqttClient.publish(window.networkService.cloudTopic, JSON.stringify(alertData), { qos: 1 });
+          } catch(e) {}
+        }
       }
     }
 
@@ -1127,9 +1145,6 @@ class TacticalMapService {
 
     // Patrullas policiales conectadas en terreno para radar en vivo
     this.patrolUnits = [
-      { id: 'SF-42', name: 'Subcomisario R. Rojas (Móvil 42)', lat: -35.5860, lng: -71.7280, status: '🟢 En Patrullaje Activo', distKm: 0.8 },
-      { id: 'SF-18', name: 'Inspector C. Muñoz (Patrulla BICRIM)', lat: -35.5980, lng: -71.7390, status: '🟢 Respondiendo Alerta', distKm: 1.1 },
-      { id: 'SF-05', name: 'Detective V. Soto (Móvil 05)', lat: -35.5900, lng: -71.7210, status: '🟢 Operativo Disponible', distKm: 0.9 },
       { id: 'SF-HQ', name: 'Guardia Cuartel BICRIM San Javier', lat: -35.5925, lng: -71.7315, status: '🔵 Base Central y Comando', distKm: 0.0 }
     ];
 
@@ -1155,7 +1170,6 @@ class TacticalMapService {
     
     this.btnCenterSelf = document.getElementById('btn-map-center-self');
     this.btnCenterTarget = document.getElementById('btn-map-center-target');
-    this.btnSimulateMap = document.getElementById('btn-map-simulate-sos');
   }
 
   bindEvents() {
@@ -1174,25 +1188,6 @@ class TacticalMapService {
         if (this.map && this.currentTargetCoords) {
           this.map.flyTo([this.currentTargetCoords.lat, this.currentTargetCoords.lng], 16, { animate: true, duration: 1.2 });
         }
-      });
-    }
-
-    if (this.btnExternalGps) {
-      this.btnExternalGps.addEventListener('click', () => {
-        window.audioService.playTacticalClick();
-        if (this.externalAppsBar) {
-          this.externalAppsBar.classList.remove('hidden');
-          this.externalAppsBar.scrollIntoView({ behavior: 'smooth' });
-        } else if (this.currentTargetCoords) {
-          window.sajauxApp.openExternalNav('waze', this.currentTargetCoords.lat, this.currentTargetCoords.lng);
-        }
-      });
-    }
-
-    if (this.btnSimulateMap) {
-      this.btnSimulateMap.addEventListener('click', () => {
-        window.audioService.playTacticalClick();
-        this.simulateTacticalSOS();
       });
     }
   }
@@ -1610,20 +1605,7 @@ class TacticalMapService {
     ];
   }
 
-  simulateTacticalSOS() {
-    const randomPatrol = this.patrolUnits[Math.floor(Math.random() * (this.patrolUnits.length - 1))];
-    const simulatedAlert = {
-      id: 'SOS-SIM-' + Date.now(),
-      operatorName: randomPatrol.name,
-      alertType: 'cooperacion',
-      location: {
-        lat: randomPatrol.lat + (Math.random() - 0.5) * 0.008,
-        lng: randomPatrol.lng + (Math.random() - 0.5) * 0.008,
-        accuracy: 4
-      }
-    };
-    this.setEmergencyTarget(simulatedAlert);
-  }
+
 }
 
 // Inicializar cuando el DOM esté listo

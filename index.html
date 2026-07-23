@@ -40,11 +40,14 @@
     </header>
 
     <!-- OPERATOR STATUS BANNER (Oculto en login) -->
-    <div class="operator-banner hidden">
+    <div class="operator-banner hidden" style="display: flex; justify-content: space-between; align-items: center;">
       <div class="operator-info">
         <span class="operator-label">🟢 RED SAJAUX ONLINE (WI-FI / 4G)</span>
         <span class="operator-name" id="operator-display-name">OPERADOR EN TURNO</span>
       </div>
+      <button class="btn-logout-small" id="btn-close-shift" title="Salir del turno" style="background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.4); border-radius: 8px; color: #f43f5e; padding: 6px 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease;">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+      </button>
     </div>
 
     <!-- PANTALLA 1: INGRESO AL SISTEMA (LOGIN) -->
@@ -114,11 +117,7 @@
         <button id="btn-install-pwa-dashboard" class="btn-install-pwa">INSTALAR</button>
       </div>
 
-      <div class="tactical-actions-bar">
-        <button class="btn-tactical-action" id="btn-close-shift">
-          <span>🛑 SALIR DEL TURNO</span>
-        </button>
-      </div>
+
 
       <!-- WHATSAPP BANNER EN DASHBOARD -->
       <div class="whatsapp-dashboard-banner">
@@ -135,7 +134,27 @@
       <div class="section-header">🚨 BOTONES DE EMERGENCIA POLICIAL (TOCA PARA TRANSMITIR)</div>
 
       <div class="emergency-buttons-stack">
-        <!-- 1. Colaboración (Amarilla) -->
+        <!-- 1. Cooperación Urgente (Roja) GRADO 1 -->
+        <div class="sos-button sos-cooperacion" id="btn-sos-cooperacion">
+          <div class="sos-hud-corner corner-tl"></div>
+          <div class="sos-hud-corner corner-br"></div>
+          <div class="sos-icon-box">
+            <svg viewBox="0 0 24 24" width="30" height="30">
+              <rect x="5.5" y="5.5" width="13" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="2.5" transform="rotate(45 12 12)"/>
+              <rect x="10.75" y="8" width="2.5" height="5.5" rx="0.5" fill="currentColor"/>
+              <circle cx="12" cy="16" r="1.5" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="sos-text-box">
+            <div class="sos-header-line">
+              <span class="sos-type-title" style="font-size: clamp(13px, 2vh, 16px);">COOPERACIÓN URGENTE</span>
+              <span class="sos-grade-badge badge-red">GRADO 1 • RIESGO VITAL</span>
+            </div>
+            <span class="sos-type-desc">Apoyo policial inmediato. Riesgo vital de funcionario o procedimiento de alta peligrosidad.</span>
+          </div>
+        </div>
+
+        <!-- 2. Colaboración (Amarilla) GRADO 2 -->
         <div class="sos-button sos-colaboracion" id="btn-sos-colaboracion">
           <div class="sos-hud-corner corner-tl"></div>
           <div class="sos-hud-corner corner-br"></div>
@@ -146,33 +165,14 @@
           </div>
           <div class="sos-text-box">
             <div class="sos-header-line">
-              <span class="sos-type-title">COLABORACIÓN</span>
+              <span class="sos-type-title" style="font-size: clamp(13px, 2vh, 16px);">COLABORACIÓN</span>
               <span class="sos-grade-badge badge-yellow">GRADO 2 • EN VÍA</span>
             </div>
             <span class="sos-type-desc">Situación controlada. Apoyo policial en procedimiento o cobertura en ruta.</span>
           </div>
         </div>
 
-        <!-- 2. Cooperación Urgente (Roja) -->
-        <div class="sos-button sos-cooperacion" id="btn-sos-cooperacion">
-          <div class="sos-hud-corner corner-tl"></div>
-          <div class="sos-hud-corner corner-br"></div>
-          <div class="sos-icon-box">
-            <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-              <circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3"/>
-            </svg>
-          </div>
-          <div class="sos-text-box">
-            <div class="sos-header-line">
-              <span class="sos-type-title">¡ COOPERACIÓN URGENTE !</span>
-              <span class="sos-grade-badge badge-red">GRADO 1 • RIESGO VITAL</span>
-            </div>
-            <span class="sos-type-desc">Apoyo policial inmediato. Riesgo vital de funcionario o procedimiento de alta peligrosidad.</span>
-          </div>
-        </div>
-
-        <!-- 3. Cooperación Servicio de Guardia (Azul) -->
+        <!-- 3. Cooperación Servicio de Guardia (Azul) GRADO 3 -->
         <div class="sos-button sos-guardia" id="btn-sos-guardia">
           <div class="sos-hud-corner corner-tl"></div>
           <div class="sos-hud-corner corner-br"></div>
@@ -183,7 +183,7 @@
           </div>
           <div class="sos-text-box">
             <div class="sos-header-line">
-              <span class="sos-type-title">GUARDIA DE CUARTEL</span>
+              <span class="sos-type-title" style="font-size: clamp(13px, 2vh, 16px);">GUARDIA DE CUARTEL</span>
               <span class="sos-grade-badge badge-blue">GRADO 3 • BASE</span>
             </div>
             <span class="sos-type-desc">Apoyo directo e inmediato en dependencia policial (Sin envío de GPS).</span>
@@ -191,33 +191,12 @@
         </div>
       </div>
 
-      <!-- PTT GRABADOR DE VOZ PREVIO A ALERTA -->
-      <div class="ptt-section">
-        <div class="section-header" style="margin-bottom:6px;">INTERCOM TÁCTICO / PTT HD</div>
-        <button class="btn-ptt tactical-ptt-btn" id="btn-ptt">
-          <div class="ptt-mic-icon">
-            <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor">
-              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-            </svg>
-          </div>
-          <span class="ptt-btn-label" id="ptt-text">PRESIONAR PARA HABLAR</span>
-          <span class="recording-dot hidden" id="recording-dot"></span>
-        </button>
 
-        <div id="audio-preview-container" class="audio-preview-box hidden" style="flex-wrap: wrap;">
-          <audio id="ptt-audio-player" controls style="height:32px; flex: 1; min-width: 150px;"></audio>
-          <div style="display: flex; gap: 6px;">
-            <button class="btn-broadcast-ptt" id="btn-broadcast-ptt" style="background: linear-gradient(135deg, #10b981, #059669); border: 1px solid #34d399; color: white; padding: 6px 10px; border-radius: 8px; font-weight: 800; font-size: 11px; cursor: pointer;">📡 TRANSMITIR</button>
-            <button class="btn-discard" id="btn-discard-audio">🗑️ Descartar</button>
-          </div>
-        </div>
-      </div>
     </main>
 
     <!-- PANTALLA 3: RADAR CENTRAL DE ALERTAS (FEED) -->
     <main id="feed-view" class="view hidden">
       <div class="feed-actions">
-        <button class="btn-simulate" id="btn-simulate">⚡ Simular Alerta Entrante</button>
         <button class="btn-clear" id="btn-clear-feed">🧹 Limpiar Radar</button>
       </div>
       <div id="alerts-feed-list" class="alerts-feed-list">
@@ -272,9 +251,6 @@
         <button class="map-action-btn btn-target hidden" id="btn-map-center-target" title="Centrar en el auxilio">
           <span>🚨 FOCO AUXILIO</span>
         </button>
-        <button class="map-action-btn btn-sim-map" id="btn-map-simulate-sos" title="Simular procedimiento de prueba en mapa">
-          <span>⚡ SIMULAR RUTA</span>
-        </button>
       </div>
     </main>
 
@@ -324,7 +300,9 @@
         <!-- DIAMOND ALERT ICON -->
         <div class="strobe-diamond-circle" id="strobe-icon-badge">
           <svg viewBox="0 0 24 24" class="diamond-svg" fill="currentColor">
-            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            <rect x="5.5" y="5.5" width="13" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="2.5" transform="rotate(45 12 12)"/>
+            <rect x="10.75" y="8" width="2.5" height="5.5" rx="0.5" fill="currentColor"/>
+            <circle cx="12" cy="16" r="1.5" fill="currentColor"/>
           </svg>
         </div>
 
@@ -377,9 +355,6 @@
           <audio id="strobe-audio-player" controls style="width: 100%; height:32px;"></audio>
         </div>
 
-        <button id="btn-whatsapp-resend" class="btn-whatsapp hidden">
-          <span>📲 COMPARTIR EN GRUPO WHATSAPP</span>
-        </button>
 
         <!-- CRYPTO FOOTER -->
         <div class="strobe-crypto-footer">CIFRADO DE PUNTO A PUNTO ACTIVO</div>

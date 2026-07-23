@@ -172,11 +172,15 @@ class NetworkService {
   saveToLocalHistory(alertData) {
     try {
       const history = this.getAlertHistory();
-      if (!history.some(item => item.id === alertData.id)) {
+      const existingIndex = history.findIndex(item => item.id === alertData.id);
+      if (existingIndex >= 0) {
+        // Actualizar alerta existente (ej: si se agregaron concurrentes)
+        history[existingIndex] = alertData;
+      } else {
         history.unshift(alertData);
-        const trimmed = history.slice(0, 50);
-        localStorage.setItem('sajaux_alerts_history', JSON.stringify(trimmed));
       }
+      const trimmed = history.slice(0, 50);
+      localStorage.setItem('sajaux_alerts_history', JSON.stringify(trimmed));
     } catch (e) {
       console.warn('Error al guardar en localStorage:', e);
     }
