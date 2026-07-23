@@ -191,6 +191,24 @@ class NetworkService {
         if (!alertData.location && oldAlert.location) {
           alertData.location = oldAlert.location;
         }
+
+        // Fusión de notas de audio múltiples
+        const mergedAudioNotes = [...(oldAlert.audioNotes || [])];
+        (alertData.audioNotes || []).forEach(inAudio => {
+          const exists = mergedAudioNotes.find(a => a.url === inAudio.url);
+          if (!exists) {
+            mergedAudioNotes.push(inAudio);
+          }
+        });
+        // Agregar compatibilidad con audioNote simple viejo
+        if (alertData.audioNote && !mergedAudioNotes.find(a => a.url === alertData.audioNote)) {
+          mergedAudioNotes.push({ url: alertData.audioNote, operator: alertData.operatorName || 'Operador', timestamp: alertData.timeFormatted });
+        }
+        alertData.audioNotes = mergedAudioNotes;
+        if (mergedAudioNotes.length > 0) {
+          alertData.audioNote = mergedAudioNotes[mergedAudioNotes.length - 1].url;
+        }
+
         history[existingIndex] = alertData;
       } else {
         history.unshift(alertData);

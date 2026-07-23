@@ -556,18 +556,35 @@ class AppController {
   transmitDirectVoiceNote(audioResult, isFromStrobe = false) {
     if (!audioResult || !audioResult.base64Url) return;
     const baseAlert = this.activeStrobeAlert || this.lastAlertSentOrReceived || {};
-    const voiceUpdatePayload = {
-      ...baseAlert,
-      id: `SAJAUX_VOICE_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-      parentAlertId: baseAlert.id || `parent_${Date.now()}`,
-      alertType: baseAlert.alertType || 'colaboracion',
-      operatorName: `${this.currentUser ? this.currentUser.fullName : 'Funcionario'} (Radio PTT)`,
-      location: baseAlert.location || null,
-      audioNote: audioResult.base64Url,
-      audioDuration: audioResult.durationSec,
-      timestamp: new Date().toISOString(),
-      timeFormatted: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    };
+    
+    let voiceUpdatePayload;
+    if (baseAlert.id) {
+      // Actualizar alerta existente añadiendo el nuevo audio al historial de comunicaciones
+      voiceUpdatePayload = { ...baseAlert };
+      voiceUpdatePayload.audioNotes = voiceUpdatePayload.audioNotes || [];
+      voiceUpdatePayload.audioNotes.push({
+        url: audioResult.base64Url,
+        operator: this.currentUser ? this.currentUser.fullName : 'Funcionario',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      });
+      voiceUpdatePayload.audioNote = audioResult.base64Url;
+    } else {
+      // Crear nueva alerta solo de voz (PTT Dashboard)
+      voiceUpdatePayload = {
+        id: `SAJAUX_VOICE_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+        alertType: 'colaboracion',
+        operatorName: `${this.currentUser ? this.currentUser.fullName : 'Funcionario'} (Radio PTT)`,
+        location: null,
+        audioNotes: [{
+          url: audioResult.base64Url,
+          operator: this.currentUser ? this.currentUser.fullName : 'Funcionario',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        }],
+        audioNote: audioResult.base64Url,
+        timestamp: new Date().toISOString(),
+        timeFormatted: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      };
+    }
 
     // Confirmación acústica y emisión en tiempo real a la red (MQTT + BroadcastChannel)
     window.audioService.playTacticalClick();
@@ -922,13 +939,23 @@ class AppController {
       }
 
       let audioHtml = '';
-      if (item.audioNote) {
-        audioHtml = `
-          <div class="alert-audio-player">
-            <span style="font-size:14px;">🎙️ Nota de voz PTT HD</span>
-            <audio controls src="${item.audioNote}" style="height:28px; max-width:200px;"></audio>
-          </div>
-        `;
+      const notesToRender = (item.audioNotes && item.audioNotes.length > 0) ? item.audioNotes : (item.audioNote ? [{url: item.audioNote, operator: item.operatorName || 'Operador', timestamp: item.timeFormatted}] : []);
+      
+      if (notesToRender.length > 0) {
+        audioHtml = '<div class="alert-audio-history" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">';
+        notesToRender.forEach((note, idx) => {
+          const isFirst = idx === 0;
+          audioHtml += `
+            <div class="alert-audio-player" style="background: rgba(15,23,42,0.6); border: 1px solid #334155; padding: 6px; border-radius: 8px;">
+              <div style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; margin-bottom: 4px; padding: 0 4px;">
+                <span>🎙️ ${isFirst ? 'Audio Inicial' : 'Actualización PTT'} • ${note.operator || 'Funcionario'}</span>
+                <span>${note.timestamp || ''}</span>
+              </div>
+              <audio controls src="${note.url}" style="height:28px; width: 100%; max-width: 100%;"></audio>
+            </div>
+          `;
+        });
+        audioHtml += '</div>';
       }
 
       let respondersHtml = '';
