@@ -1098,8 +1098,8 @@ body {
   box-shadow: 0 4px 15px rgba(2, 132, 199, 0.2);
 }
 
-.btn-strobe-route:hover {
-  background: #162f48;
+.btn-strobe-route:active {
+  transform: scale(0.98);
 }
 
 .strobe-intercom-label {
