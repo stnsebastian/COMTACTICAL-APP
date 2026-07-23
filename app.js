@@ -1118,10 +1118,19 @@ class AppController {
       window.audioService.stopAlarm();
     }
 
-    // Navegar de inmediato al Mapa Táctico y trazar ruta
-    this.showView('map');
-    if (this.tacticalMapService && alertData) {
-      this.tacticalMapService.setEmergencyTarget(alertData);
+    // Navegar de inmediato al Mapa Táctico y trazar ruta solo si no estamos ahí
+    const isAlreadyOnMap = this.mapView && !this.mapView.classList.contains('hidden');
+    if (!isAlreadyOnMap) {
+      this.showView('map');
+      setTimeout(() => {
+        if (this.tacticalMapService && alertData) {
+          this.tacticalMapService.setEmergencyTarget(alertData);
+        }
+      }, 50);
+    } else {
+      if (this.tacticalMapService && alertData) {
+        this.tacticalMapService.setEmergencyTarget(alertData);
+      }
     }
 
     // Actualización de feed silenciosa (sin alert invasivo que interrumpa la PWA)
@@ -1174,15 +1183,7 @@ class TacticalMapService {
   }
 
   bindEvents() {
-    if (this.btnCenterSelf) {
-      this.btnCenterSelf.addEventListener('click', () => {
-        window.audioService.playTacticalClick();
-        if (this.map && this.currentSelfCoords) {
-          this.map.flyTo([this.currentSelfCoords.lat, this.currentSelfCoords.lng], 16, { animate: true, duration: 1.2 });
-        }
-      });
-    }
-
+    // btnCenterSelf eliminado, no se bindeará el evento
     if (this.btnCenterTarget) {
       this.btnCenterTarget.addEventListener('click', () => {
         window.audioService.playTacticalClick();
@@ -1241,35 +1242,9 @@ class TacticalMapService {
   }
 
   renderSelfMarker() {
-    if (!this.map || !window.L) return;
-
-    if (this.selfMarker) {
-      this.map.removeLayer(this.selfMarker);
-    }
-
-    const selfHtml = `
-      <div style="background: rgba(14,20,31,0.95); border: 2px solid #38bdf8; border-radius: 50px; padding: 4px 10px; display: flex; align-items: center; gap: 6px; box-shadow: 0 0 16px rgba(56,189,248,0.7); white-space: nowrap; transform: translate(-50%, -50%);">
-        <span style="display:inline-block; width:10px; height:10px; background:#38bdf8; border-radius:50%; box-shadow:0 0 8px #38bdf8;"></span>
-        <span style="color:white; font-size:11px; font-weight:900; letter-spacing:0.5px;">TÚ (MI PATRULLA)</span>
-      </div>
-    `;
-
-    const customIcon = L.divIcon({
-      className: 'custom-tactical-pin',
-      html: selfHtml,
-      iconSize: [120, 30],
-      iconAnchor: [60, 15]
-    });
-
-    const opName = this.app && this.app.currentUser ? this.app.currentUser.fullName : 'Funcionario Activo';
-
-    this.selfMarker = L.marker([this.currentSelfCoords.lat, this.currentSelfCoords.lng], { icon: customIcon })
-      .addTo(this.map)
-      .bindPopup(`
-        <div class="marker-popup-title">🧭 ${opName}</div>
-        <div class="marker-popup-sub">Terminal de Operaciones SAJAUX</div>
-        <div class="marker-popup-status">🟢 EN TURNO OPERATIVO CONECTADO</div>
-      `);
+    // DESHABILITADO: El usuario solicitó no mostrar el pin "TÚ (MI PATRULLA)" por defecto,
+    // solo se mostrarán los marcadores de la emergencia y demás unidades conectadas.
+    return;
   }
 
   renderConnectedPatrols() {

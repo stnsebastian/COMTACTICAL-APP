@@ -386,6 +386,7 @@ body {
 }
 
 .sos-button {
+  flex: 1;
   position: relative;
   border-radius: var(--radius-md);
   padding: clamp(12px, 2vh, 18px) clamp(14px, 2.5vw, 18px);
