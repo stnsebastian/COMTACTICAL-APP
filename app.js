@@ -161,6 +161,14 @@ class AppController {
       this.bindTacticalPTTButton(this.btnStrobePTT, true);
     }
 
+    // Botón Confirmar Despliegue en Camino (Pointerdown para respuesta inmediata sin bugs de iOS)
+    if (this.btnStrobeOpenMap) {
+      this.btnStrobeOpenMap.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        this.triggerDespliegueEnCamino(null, true);
+      });
+    }
+
     // Control automático del volumen de la sirena (ducking al 0.5%) cada vez que se reproduzca una nota de voz PTT en baliza o vista previa
     if (this.strobeAudioPlayer) {
       this.strobeAudioPlayer.addEventListener('play', () => window.audioService.duckAlarm(true));
@@ -659,7 +667,14 @@ class AppController {
     }
 
     window.networkService.onAlertReceived((alertData, isLocalBroadcast) => {
-      if (!isLocalBroadcast) {
+      const isAlreadyOnMapForThis = this.mapView && !this.mapView.classList.contains('hidden') && this.activeStrobeAlert && this.activeStrobeAlert.id === alertData.id;
+      
+      if (this.tacticalMapService && this.activeStrobeAlert && this.activeStrobeAlert.id === alertData.id) {
+        this.activeStrobeAlert = alertData;
+        this.tacticalMapService.setEmergencyTarget(alertData);
+      }
+
+      if (!isLocalBroadcast && !isAlreadyOnMapForThis) {
         this.openStrobeModal(alertData, true);
 
         if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
@@ -1077,20 +1092,27 @@ class AppController {
       alertData = this.lastAlertSentOrReceived;
     }
 
-    // Registrar despliegue en la alerta y en la red
-    const responderName = (this.currentUser && this.currentUser.fullName) ? this.currentUser.fullName : 'Móvil Policial';
+    const operatorName = (this.currentUser && this.currentUser.fullName) ? this.currentUser.fullName : 'Móvil Policial';
+    const responderObj = {
+      name: operatorName,
+      lat: this.tacticalMapService && this.tacticalMapService.currentSelfCoords ? this.tacticalMapService.currentSelfCoords.lat : null,
+      lng: this.tacticalMapService && this.tacticalMapService.currentSelfCoords ? this.tacticalMapService.currentSelfCoords.lng : null
+    };
+
     if (alertData) {
       alertData.responders = alertData.responders || [];
-      if (!alertData.responders.includes(responderName)) {
-        alertData.responders.push(responderName);
-        // Guardar la actualización en memoria local e historial
-        window.networkService.saveToLocalHistory(alertData);
-        // Emitir la alerta actualizada a la red para que los demás vean la concurrencia
-        if (window.networkService.mqttClient && window.networkService.isCloudConnected) {
-          try {
-            window.networkService.mqttClient.publish(window.networkService.cloudTopic, JSON.stringify(alertData), { qos: 1 });
-          } catch(e) {}
-        }
+      const existing = alertData.responders.findIndex(r => (typeof r === 'object' ? r.name : r) === operatorName);
+      if (existing === -1) {
+        alertData.responders.push(responderObj);
+      } else {
+        alertData.responders[existing] = responderObj;
+      }
+      
+      window.networkService.saveToLocalHistory(alertData);
+      if (window.networkService.mqttClient && window.networkService.isCloudConnected) {
+        try {
+          window.networkService.mqttClient.publish(window.networkService.cloudTopic, JSON.stringify(alertData), { qos: 1 });
+        } catch(e) {}
       }
     }
 
@@ -1195,22 +1217,35 @@ class TacticalMapService {
 
       L.control.zoom({ position: 'topright' }).addTo(this.map);
 
-      // Obtener GPS del operador en segundo plano si hay permisos
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            this.currentSelfCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            this.renderSelfMarker();
-          },
-          (err) => {
-            console.log('[TacticalMap] Usando coordenadas base BICRIM San Javier como ubicación por defecto.');
-            this.renderSelfMarker();
-          },
-          { enableHighAccuracy: true, timeout: 5000 }
-        );
-      } else {
+      // Iniciar tracking GPS continuo
+      window.geoService.startTracking((geoData) => {
+        this.currentSelfCoords = { lat: geoData.lat, lng: geoData.lng };
         this.renderSelfMarker();
-      }
+
+        // Si hay una alerta activa y soy el emisor o concurrente, retransmito mi nueva posición!
+        if (this.app && this.app.activeStrobeAlert) {
+          const alert = this.app.activeStrobeAlert;
+          const isSender = alert.senderDeviceId === window.networkService.deviceId || alert.operatorName === (this.app.currentUser && this.app.currentUser.fullName);
+          const responders = alert.responders || [];
+          const isResponder = responders.some(r => (typeof r === 'object' ? r.name : r) === (this.app.currentUser && this.app.currentUser.fullName));
+          
+          let updated = false;
+          if (isSender && !alert.location.isGuardia) {
+            alert.location = geoData;
+            updated = true;
+          }
+          if (isResponder) {
+            const idx = responders.findIndex(r => (typeof r === 'object' ? r.name : r) === (this.app.currentUser && this.app.currentUser.fullName));
+            if (idx >= 0) {
+              alert.responders[idx] = { name: this.app.currentUser.fullName, lat: geoData.lat, lng: geoData.lng };
+              updated = true;
+            }
+          }
+          if (updated) {
+            window.networkService.broadcastAlert(alert);
+          }
+        }
+      });
 
       this.renderSelfMarker();
       this.renderConnectedPatrols();
@@ -1314,8 +1349,16 @@ class TacticalMapService {
 
     // 1. Mostrar funcionarios que pulsaron "Despliegue en Camino" (Concurrencia al auxilio)
     if (responders.length > 0) {
-      responders.forEach((respName, idx) => {
-        const distKm = (0.3 + idx * 0.4).toFixed(1);
+      responders.forEach((respObj, idx) => {
+        const respName = typeof respObj === 'object' ? respObj.name : respObj;
+        const hasLocation = typeof respObj === 'object' && typeof respObj.lat === 'number' && typeof respObj.lng === 'number';
+        
+        // Calcular distancia real si se tienen coordenadas, si no aproximar
+        let distKm = (0.3 + idx * 0.4).toFixed(1);
+        if (hasLocation && alertData && alertData.location && alertData.location.lat) {
+          distKm = (this.map.distance([respObj.lat, respObj.lng], [alertData.location.lat, alertData.location.lng]) / 1000).toFixed(1);
+        }
+
         html += `
           <div class="responder-card en-camino" onclick="window.sajauxApp.tacticalMapService.focusOnResponder('${respName}', ${distKm})">
             <div class="responder-info">
@@ -1333,28 +1376,34 @@ class TacticalMapService {
         if (this.map && window.L && alertData && alertData.location) {
           const operatorName = (this.app && this.app.currentUser && this.app.currentUser.fullName) ? this.app.currentUser.fullName : '';
           let rLat, rLng;
-          if (respName === operatorName) {
+          if (respName === operatorName && this.currentSelfCoords) {
             rLat = this.currentSelfCoords.lat;
             rLng = this.currentSelfCoords.lng;
+          } else if (hasLocation) {
+            rLat = respObj.lat;
+            rLng = respObj.lng;
           } else {
             rLat = alertData.location.lat + (Math.sin(idx + 1) * 0.005);
             rLng = alertData.location.lng + (Math.cos(idx + 1) * 0.005);
           }
-          const pinHtml = `
-            <div style="background: rgba(5, 150, 105, 0.95); border: 2px solid #34d399; border-radius: 50px; padding: 3px 9px; display: flex; align-items: center; gap: 5px; box-shadow: 0 0 16px rgba(16,185,129,0.8); white-space: nowrap; transform: translate(-50%, -50%);">
-              <span style="display:inline-block; width:8px; height:8px; background:#d1fae5; border-radius:50%; box-shadow:0 0 6px #d1fae5;"></span>
-              <span style="color:white; font-size:10px; font-weight:900;">🚨 EN CAMINO: ${respName}</span>
-            </div>
-          `;
-          const rIcon = L.divIcon({ className: '', html: pinHtml, iconSize: [150, 26], iconAnchor: [75, 13] });
-          const marker = L.marker([rLat, rLng], { icon: rIcon })
-            .addTo(this.map)
-            .bindPopup(`
-              <div class="marker-popup-title">🚨 ${respName}</div>
-              <div class="marker-popup-sub">Distancia al auxilio: ${distKm} km</div>
-              <div class="marker-popup-status" style="color:#34d399;">🟢 DESPLIEGUE EN CAMINO CONFIRMADO</div>
-            `);
-          this.responderPins.push(marker);
+          
+          if (rLat && rLng) {
+            const pinHtml = `
+              <div style="background: rgba(5, 150, 105, 0.95); border: 2px solid #34d399; border-radius: 50px; padding: 3px 9px; display: flex; align-items: center; gap: 5px; box-shadow: 0 0 16px rgba(16,185,129,0.8); white-space: nowrap; transform: translate(-50%, -50%);">
+                <span style="display:inline-block; width:8px; height:8px; background:#d1fae5; border-radius:50%; box-shadow:0 0 6px #d1fae5; animation: pulseRed 1s infinite alternate;"></span>
+                <span style="color:white; font-size:10px; font-weight:900;">🚨 EN CAMINO: ${respName}</span>
+              </div>
+            `;
+            const rIcon = L.divIcon({ className: '', html: pinHtml, iconSize: [150, 26], iconAnchor: [75, 13] });
+            const marker = L.marker([rLat, rLng], { icon: rIcon })
+              .addTo(this.map)
+              .bindPopup(`
+                <div class="marker-popup-title">🚨 ${respName}</div>
+                <div class="marker-popup-sub">Distancia al auxilio: ${distKm} km</div>
+                <div class="marker-popup-status" style="color:#34d399;">🟢 DESPLIEGUE EN CAMINO EN VIVO</div>
+              `);
+            this.responderPins.push(marker);
+          }
         }
       });
     }

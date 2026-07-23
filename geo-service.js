@@ -8,6 +8,33 @@
 class GeoService {
   constructor() {
     this.lastPosition = null;
+    this.watchId = null;
+  }
+
+  startTracking(callback) {
+    if (this.watchId) return;
+    if ('geolocation' in navigator) {
+      this.watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const accuracy = Math.round(position.coords.accuracy || 10);
+          const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+          const geoData = {
+            lat: lat,
+            lng: lng,
+            accuracy: accuracy,
+            label: `GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${accuracy}m)`,
+            isGuardia: false,
+            mapUrl: mapUrl
+          };
+          this.lastPosition = geoData;
+          if (callback) callback(geoData);
+        },
+        (error) => console.warn('[GeoService] Error en tracking continuo:', error),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+      );
+    }
   }
 
   /**

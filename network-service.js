@@ -174,7 +174,23 @@ class NetworkService {
       const history = this.getAlertHistory();
       const existingIndex = history.findIndex(item => item.id === alertData.id);
       if (existingIndex >= 0) {
-        // Actualizar alerta existente (ej: si se agregaron concurrentes)
+        const oldAlert = history[existingIndex];
+        const mergedResponders = [...(oldAlert.responders || [])];
+        
+        (alertData.responders || []).forEach(inResp => {
+          const inName = typeof inResp === 'object' ? inResp.name : inResp;
+          const mIdx = mergedResponders.findIndex(r => (typeof r === 'object' ? r.name : r) === inName);
+          if (mIdx >= 0) {
+            mergedResponders[mIdx] = inResp;
+          } else {
+            mergedResponders.push(inResp);
+          }
+        });
+        alertData.responders = mergedResponders;
+        // Si el que mandó la alerta no mandó location (ej. es un update de un responder), preservamos el location original
+        if (!alertData.location && oldAlert.location) {
+          alertData.location = oldAlert.location;
+        }
         history[existingIndex] = alertData;
       } else {
         history.unshift(alertData);
