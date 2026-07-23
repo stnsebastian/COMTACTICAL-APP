@@ -791,23 +791,11 @@ class AppController {
         this.strobeLocationText.innerHTML = `<span class="loc-coords">📍 SERVICIO DE GUARDIA DE LA UNIDAD</span><span class="loc-precision">Base Central</span>`;
         if (this.btnStrobeOpenMap && isReceiver) {
           this.btnStrobeOpenMap.classList.remove('hidden');
-          const triggerFn = (e) => {
-            if (e) e.preventDefault();
-            this.triggerDespliegueEnCamino(alertData, true);
-          };
-          this.btnStrobeOpenMap.onclick = triggerFn;
-          this.btnStrobeOpenMap.ontouchstart = triggerFn;
         }
       } else if (location && location.lat) {
         this.strobeLocationText.innerHTML = `<span class="loc-coords">📍 ${location.lat.toFixed(4)}° N, ${location.lng.toFixed(4)}° W</span><span class="loc-precision">Precisión: ±${location.accuracy || 3.2}m</span>`;
         if (this.btnStrobeOpenMap && isReceiver) {
           this.btnStrobeOpenMap.classList.remove('hidden');
-          const triggerFn = (e) => {
-            if (e) e.preventDefault();
-            this.triggerDespliegueEnCamino(alertData, true);
-          };
-          this.btnStrobeOpenMap.onclick = triggerFn;
-          this.btnStrobeOpenMap.ontouchstart = triggerFn;
         } else if (this.btnStrobeOpenMap) {
           this.btnStrobeOpenMap.classList.add('hidden');
         }
@@ -1343,8 +1331,15 @@ class TacticalMapService {
 
         // Dibujar pin en el mapa del funcionario concurrente
         if (this.map && window.L && alertData && alertData.location) {
-          const rLat = alertData.location.lat + (Math.sin(idx + 1) * 0.005);
-          const rLng = alertData.location.lng + (Math.cos(idx + 1) * 0.005);
+          const operatorName = (this.app && this.app.currentUser && this.app.currentUser.fullName) ? this.app.currentUser.fullName : '';
+          let rLat, rLng;
+          if (respName === operatorName) {
+            rLat = this.currentSelfCoords.lat;
+            rLng = this.currentSelfCoords.lng;
+          } else {
+            rLat = alertData.location.lat + (Math.sin(idx + 1) * 0.005);
+            rLng = alertData.location.lng + (Math.cos(idx + 1) * 0.005);
+          }
           const pinHtml = `
             <div style="background: rgba(5, 150, 105, 0.95); border: 2px solid #34d399; border-radius: 50px; padding: 3px 9px; display: flex; align-items: center; gap: 5px; box-shadow: 0 0 16px rgba(16,185,129,0.8); white-space: nowrap; transform: translate(-50%, -50%);">
               <span style="display:inline-block; width:8px; height:8px; background:#d1fae5; border-radius:50%; box-shadow:0 0 6px #d1fae5;"></span>
