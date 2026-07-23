@@ -1237,17 +1237,16 @@ class TacticalMapService {
     }
 
     const selfHtml = `
-      <div style="background: rgba(14,20,31,0.95); border: 2px solid #0ea5e9; border-radius: 50px; padding: 4px 10px; display: flex; align-items: center; gap: 6px; box-shadow: 0 0 15px rgba(14,165,233,0.5); white-space: nowrap; transform: translate(-50%, -50%);">
+      <div style="background: rgba(14,20,31,0.95); border: 2px solid #0ea5e9; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(14,165,233,0.8); transform: translate(-50%, -50%);">
         <span style="display:inline-block; width:10px; height:10px; background:#38bdf8; border-radius:50%; box-shadow:0 0 8px #38bdf8;"></span>
-        <span style="color:white; font-size:11px; font-weight:800; letter-spacing:0.5px;">TÚ (MI PATRULLA)</span>
       </div>
     `;
 
     const selfIcon = L.divIcon({
       className: 'custom-tactical-pin',
       html: selfHtml,
-      iconSize: [120, 30],
-      iconAnchor: [60, 15]
+      iconSize: [20, 20],
+      iconAnchor: [10, 10]
     });
 
     this.selfMarker = L.marker([this.currentSelfCoords.lat, this.currentSelfCoords.lng], { icon: selfIcon })
@@ -1509,17 +1508,35 @@ class TacticalMapService {
     // Actualizar marcadores satelitales de concurrentes en el mapa
     this.renderRespondersBoard(alertData);
 
-    // Dibujar ruta exacta siguiendo las calles del mapa (OSRM + trazado urbano)
-    this.drawStreetRoute(this.currentSelfCoords.lat, this.currentSelfCoords.lng, targetLat, targetLng, badgeColor);
+    const isMyOwnAlert = alertData && alertData.operatorName === operatorName;
 
-    setTimeout(() => {
-      if (this.map) {
-        this.map.fitBounds([
-          [this.currentSelfCoords.lat, this.currentSelfCoords.lng],
-          [targetLat, targetLng]
-        ], { padding: [70, 70], maxZoom: 16 });
+    if (isMyOwnAlert) {
+      // Si la alerta es mía, ocultar "TÚ MI PATRULLA", ocultar panel de ETA y NO trazar ruta hacia mí mismo
+      if (this.selfMarker) this.map.removeLayer(this.selfMarker);
+      if (this.routeSummaryBox) this.routeSummaryBox.classList.add('hidden');
+      
+      setTimeout(() => {
+        if (this.map) {
+          this.map.flyTo([targetLat, targetLng], 16, { animate: true, duration: 1.2 });
+        }
+      }, 200);
+    } else {
+      // Asegurar que el pin propio sí esté visible
+      if (this.selfMarker && !this.map.hasLayer(this.selfMarker)) {
+        this.selfMarker.addTo(this.map);
       }
-    }, 200);
+      // Dibujar ruta exacta siguiendo las calles del mapa (OSRM + trazado urbano)
+      this.drawStreetRoute(this.currentSelfCoords.lat, this.currentSelfCoords.lng, targetLat, targetLng, badgeColor);
+
+      setTimeout(() => {
+        if (this.map) {
+          this.map.fitBounds([
+            [this.currentSelfCoords.lat, this.currentSelfCoords.lng],
+            [targetLat, targetLng]
+          ], { padding: [70, 70], maxZoom: 16 });
+        }
+      }, 200);
+    }
   }
 
   async drawStreetRoute(startLat, startLng, targetLat, targetLng, badgeColor) {
