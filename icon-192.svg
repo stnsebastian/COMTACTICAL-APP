@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="192" height="192">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#141c2e"/>
+      <stop offset="100%" stop-color="#070a11"/>
+    </radialGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e2942"/>
+      <stop offset="50%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#0a0f19"/>
+    </linearGradient>
+    <linearGradient id="beaconRed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff1a4a"/>
+      <stop offset="100%" stop-color="#b30024"/>
+    </linearGradient>
+    <linearGradient id="beaconBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a8cff"/>
+      <stop offset="100%" stop-color="#004d99"/>
+    </linearGradient>
+    <linearGradient id="beaconYellow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffdf1a"/>
+      <stop offset="100%" stop-color="#cc9900"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  
+  <rect width="512" height="512" rx="112" fill="url(#bgGlow)"/>
+  
+  <!-- Outer Tactical Border -->
+  <rect x="20" y="20" width="472" height="472" rx="96" fill="none" stroke="#253553" stroke-width="6" opacity="0.6"/>
+  <rect x="32" y="32" width="448" height="448" rx="84" fill="none" stroke="#10b981" stroke-width="2" opacity="0.3"/>
+
+  <!-- Shield Base -->
+  <path d="M256 64 C160 64 96 100 96 100 L96 260 C96 370 180 430 256 460 C332 430 416 370 416 260 L416 100 C416 100 352 64 256 64 Z" fill="url(#shieldGrad)" stroke="#3b82f6" stroke-width="6" filter="url(#glow)"/>
+
+  <!-- Tactical Beacons on Shield -->
+  <!-- Red Beacon (Left) -->
+  <path d="M140 160 C140 135 180 120 236 120 L236 185 L140 185 Z" fill="url(#beaconRed)" filter="url(#glow)"/>
+  <!-- Blue Beacon (Right) -->
+  <path d="M372 160 C372 135 332 120 276 120 L276 185 L372 185 Z" fill="url(#beaconBlue)" filter="url(#glow)"/>
+  <!-- Yellow Center Light -->
+  <circle cx="256" cy="150" r="26" fill="url(#beaconYellow)" filter="url(#glow)"/>
+
+  <!-- Beacon Bar Metallic Base -->
+  <rect x="130" y="185" width="252" height="20" rx="6" fill="#334155" stroke="#475569" stroke-width="2"/>
+
+  <!-- Police Star / Tactical Emblem -->
+  <polygon points="256,225 272,260 310,260 280,282 292,318 256,295 220,318 232,282 202,260 240,260" fill="#f8fafc" opacity="0.9"/>
+  <circle cx="256" cy="275" r="16" fill="#0f172a"/>
+  <circle cx="256" cy="275" r="8" fill="#ef4444"/>
+
+  <!-- Text Branding -->
+  <text x="256" y="380" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="4">SAJ</text>
+  <text x="256" y="418" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="800" fill="#38bdf8" text-anchor="middle" letter-spacing="6">AUX</text>
+</svg>

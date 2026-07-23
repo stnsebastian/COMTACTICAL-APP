@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SAJAUX - Sistema Táctico de Cooperación Policial</title>
+  
+  <!-- PWA Meta y Manifest -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#070a11">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SAJAUX">
+  <link rel="apple-touch-icon" href="./icon-192.svg">
+  <link rel="icon" type="image/svg+xml" href="./icon-192.svg">
+  
+  <!-- Hojas de estilo -->
+  <link rel="stylesheet" href="./styles.css">
+  
+  <!-- Leaflet CSS & JS para Mapa Táctico GPS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Librería MQTT sobre WebSocket para nube en tiempo real -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- HEADER BAR -->
+    <header class="tactical-header">
+      <div class="brand-wrapper">
+        <div class="brand-badge">SJ</div>
+        <div class="brand-title">SAJAUX</div>
+      </div>
+      <div class="status-pill">
+        <div class="status-dot"></div>
+        <span>ACTIVO</span>
+      </div>
+    </header>
+
+    <!-- OPERATOR STATUS BANNER (Oculto en login) -->
+    <div class="operator-banner hidden">
+      <div class="operator-info">
+        <span class="operator-label">🟢 RED SAJAUX ONLINE (WI-FI / 4G)</span>
+        <span class="operator-name" id="operator-display-name">OPERADOR EN TURNO</span>
+      </div>
+    </div>
+
+    <!-- PANTALLA 1: INGRESO AL SISTEMA (LOGIN) -->
+    <main id="login-view" class="view login-screen active">
+      <div class="login-card">
+        <svg class="login-icon-header" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <path d="M256 64 C160 64 96 100 96 100 L96 260 C96 370 180 430 256 460 C332 430 416 370 416 260 L416 100 C416 100 352 64 256 64 Z" fill="#1e2942" stroke="#38bdf8" stroke-width="12"/>
+          <circle cx="256" cy="180" r="35" fill="#ffdf1a"/>
+          <polygon points="256,235 272,270 310,270 280,292 292,328 256,305 220,328 232,292 202,270 240,270" fill="#f8fafc"/>
+        </svg>
+
+        <h1 class="login-title">SAJAUX TACTICAL</h1>
+        <p class="login-subtitle">Terminal policial de cooperación, alertas y comunicaciones PTT HD.</p>
+        <div class="login-unit-badge">BICRIM SAN JAVIER</div>
+        <div class="author-signature"><strong class="author-highlight">JSPA</strong></div>
+
+        <!-- BANNER INSTALACIÓN PWA -->
+        <div id="pwa-install-banner-login" class="pwa-install-banner hidden">
+          <div class="pwa-install-text">
+            <strong>📲 INSTALAR EN CELULAR</strong>
+            <span>Para acceso offline y alertas inmediatas en pantalla bloqueada</span>
+          </div>
+          <button id="btn-install-pwa-login" class="btn-install-pwa">INSTALAR</button>
+        </div>
+
+        <!-- OPCIÓN DE WHATSAPP -->
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="whatsapp-option-label">
+            <input type="checkbox" id="login-whatsapp-toggle" class="custom-checkbox">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-size:13px; font-weight:800; color:#25D366;">🟢 Enviar y notificar al Grupo de WhatsApp</span>
+              <span style="font-size:11px; color:var(--text-secondary);">Abre automáticamente WhatsApp con el mensaje pre-redactado y ubicación de la alerta en el grupo BICRIM SAN JAVIER.</span>
+            </div>
+          </label>
+        </div>
+
+        <form id="login-form" style="width: 100%;">
+          <div class="form-group">
+            <div class="form-label">
+              <span>Primer Nombre</span>
+              <span class="form-hint">Cap. automática</span>
+            </div>
+            <input type="text" id="input-firstname" class="form-input" placeholder="Ej: Juan" required autocomplete="given-name">
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">
+              <span>Apellidos</span>
+              <span class="form-hint">Mayúsculas automáticas</span>
+            </div>
+            <input type="text" id="input-surnames" class="form-input" placeholder="Ej: PÉREZ GONZÁLEZ" required autocomplete="family-name">
+          </div>
+
+          <button type="submit" class="btn-primary">INICIAR TURNO OPERATIVO</button>
+        </form>
+      </div>
+    </main>
+
+    <!-- PANTALLA 2: DASHBOARD TÁCTICO -->
+    <main id="dashboard-view" class="view hidden">
+      <!-- BANNER PWA EN DASHBOARD -->
+      <div id="pwa-install-banner-dashboard" class="pwa-install-banner hidden">
+        <div class="pwa-install-text">
+          <strong>📲 INSTALAR APP SAJAUX EN CELULAR</strong>
+          <span>Activa notificaciones prioritarias y acceso directo nativo</span>
+        </div>
+        <button id="btn-install-pwa-dashboard" class="btn-install-pwa">INSTALAR</button>
+      </div>
+
+      <div class="tactical-actions-bar">
+        <button class="btn-tactical-action" id="btn-close-shift">
+          <span>🛑 SALIR DEL TURNO</span>
+        </button>
+      </div>
+
+      <!-- WHATSAPP BANNER EN DASHBOARD -->
+      <div class="whatsapp-dashboard-banner">
+        <div class="whatsapp-banner-info">
+          <span class="whatsapp-banner-title">📲 NOTIFICAR AL GRUPO WHATSAPP</span>
+          <span class="whatsapp-banner-sub">BICRIM SAN JAVIER (Envío de alerta con ubicación)</span>
+        </div>
+        <label class="tactical-switch">
+          <input type="checkbox" id="dashboard-whatsapp-toggle">
+          <span class="switch-slider"></span>
+        </label>
+      </div>
+
+      <div class="section-header">🚨 BOTONES DE EMERGENCIA POLICIAL (TOCA PARA TRANSMITIR)</div>
+
+      <div class="emergency-buttons-stack">
+        <!-- 1. Colaboración (Amarilla) -->
+        <div class="sos-button sos-colaboracion" id="btn-sos-colaboracion">
+          <div class="sos-hud-corner corner-tl"></div>
+          <div class="sos-hud-corner corner-br"></div>
+          <div class="sos-icon-box">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
+              <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16h2v2h-2zm0-6h2v4h-2z"/>
+            </svg>
+          </div>
+          <div class="sos-text-box">
+            <div class="sos-header-line">
+              <span class="sos-type-title">COLABORACIÓN</span>
+              <span class="sos-grade-badge badge-yellow">GRADO 2 • EN VÍA</span>
+            </div>
+            <span class="sos-type-desc">Situación controlada. Apoyo policial en procedimiento o cobertura en ruta.</span>
+          </div>
+        </div>
+
+        <!-- 2. Cooperación Urgente (Roja) -->
+        <div class="sos-button sos-cooperacion" id="btn-sos-cooperacion">
+          <div class="sos-hud-corner corner-tl"></div>
+          <div class="sos-hud-corner corner-br"></div>
+          <div class="sos-icon-box">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              <circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3"/>
+            </svg>
+          </div>
+          <div class="sos-text-box">
+            <div class="sos-header-line">
+              <span class="sos-type-title">¡ COOPERACIÓN URGENTE !</span>
+              <span class="sos-grade-badge badge-red">GRADO 1 • RIESGO VITAL</span>
+            </div>
+            <span class="sos-type-desc">Apoyo policial inmediato. Riesgo vital de funcionario o procedimiento de alta peligrosidad.</span>
+          </div>
+        </div>
+
+        <!-- 3. Cooperación Servicio de Guardia (Azul) -->
+        <div class="sos-button sos-guardia" id="btn-sos-guardia">
+          <div class="sos-hud-corner corner-tl"></div>
+          <div class="sos-hud-corner corner-br"></div>
+          <div class="sos-icon-box">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
+              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+            </svg>
+          </div>
+          <div class="sos-text-box">
+            <div class="sos-header-line">
+              <span class="sos-type-title">GUARDIA DE CUARTEL</span>
+              <span class="sos-grade-badge badge-blue">GRADO 3 • BASE</span>
+            </div>
+            <span class="sos-type-desc">Apoyo directo e inmediato en dependencia policial (Sin envío de GPS).</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PTT GRABADOR DE VOZ PREVIO A ALERTA -->
+      <div class="ptt-section">
+        <div class="section-header" style="margin-bottom:6px;">INTERCOM TÁCTICO / PTT HD</div>
+        <button class="btn-ptt tactical-ptt-btn" id="btn-ptt">
+          <div class="ptt-mic-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+          </div>
+          <span class="ptt-btn-label" id="ptt-text">PRESIONAR PARA HABLAR</span>
+          <span class="recording-dot hidden" id="recording-dot"></span>
+        </button>
+
+        <div id="audio-preview-container" class="audio-preview-box hidden" style="flex-wrap: wrap;">
+          <audio id="ptt-audio-player" controls style="height:32px; flex: 1; min-width: 150px;"></audio>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn-broadcast-ptt" id="btn-broadcast-ptt" style="background: linear-gradient(135deg, #10b981, #059669); border: 1px solid #34d399; color: white; padding: 6px 10px; border-radius: 8px; font-weight: 800; font-size: 11px; cursor: pointer;">📡 TRANSMITIR</button>
+            <button class="btn-discard" id="btn-discard-audio">🗑️ Descartar</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- PANTALLA 3: RADAR CENTRAL DE ALERTAS (FEED) -->
+    <main id="feed-view" class="view hidden">
+      <div class="feed-actions">
+        <button class="btn-simulate" id="btn-simulate">⚡ Simular Alerta Entrante</button>
+        <button class="btn-clear" id="btn-clear-feed">🧹 Limpiar Radar</button>
+      </div>
+      <div id="alerts-feed-list" class="alerts-feed-list">
+        <!-- Tarjetas dinámicas de alerta SAJAUX -->
+      </div>
+    </main>
+
+    <!-- PANTALLA 4: MAPA TÁCTICO POLICIAL EN VIVO (REORGANIZADO A PANTALLA COMPLETA 100%) -->
+    <main id="map-view" class="view hidden" style="padding: 0; position: relative; width: 100%; height: calc(100vh - var(--header-height) - var(--nav-height)); overflow: hidden;">
+      <!-- CONTENEDOR LEAFLET MAP (A PANTALLA COMPLETA 100%) -->
+      <div id="tactical-map-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></div>
+
+      <!-- PANEL FLOTANTE SUPERIOR (HUD HEADER) -->
+      <div class="map-floating-top" id="map-hud-panel">
+        <div class="map-top-bar">
+          <div class="top-bar-left">
+            <span class="map-hud-title">🗺️ MAPA TÁCTICO PDI • BICRIM SAN JAVIER</span>
+            <span class="map-hud-status" id="map-status-pill">🟢 4 UNIDADES EN TERRENO</span>
+          </div>
+        </div>
+
+        <!-- RESUMEN DE RUTA Y OBJETIVO (SOLO VISIBLE CUANDO HAY AUXILIO ACTIVO) -->
+        <div class="map-target-info hidden" id="map-target-info">
+          <div class="target-info-header">
+            <span class="map-target-name" id="map-target-name">🚨 AUXILIO RIESGO VITAL</span>
+            <div class="map-route-summary" id="map-route-summary">
+              <span class="metric-pill" id="map-dist-val">-- km</span>
+              <span class="metric-pill accent-red" id="map-eta-val">-- min</span>
+              <span class="metric-pill" id="map-support-val">-- patrullas</span>
+            </div>
+          </div>
+          <div class="map-target-desc" id="map-target-desc">Calculando mejor ruta de intercepción...</div>
+        </div>
+      </div>
+
+      <!-- PANEL FLOTANTE INFERIOR (DESPLIEGUE + APPS GPS) -->
+      <div class="map-floating-bottom">
+        <!-- BOTÓN DESPLIEGUE EN CAMINO DESDE EL MAPA -->
+        <div class="map-despliegue-box hidden" id="map-despliegue-box">
+          <button class="btn-despliegue map-despliegue-btn" onclick="window.sajauxApp.triggerDespliegueEnCamino()">
+            <span class="despliegue-icon">🚨</span>
+            <span class="despliegue-text">CONFIRMAR: DESPLIEGUE EN CAMINO AL AUXILIO</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- BOTONES DE ACCIÓN RÁPIDA EN EL MAPA (FLOTANTE DERECHO COMPACTO) -->
+      <div class="map-controls-overlay">
+        <button class="map-action-btn" id="btn-map-center-self" title="Centrar en mi ubicación">
+          <span>🧭 MI PATRULLA</span>
+        </button>
+        <button class="map-action-btn btn-target hidden" id="btn-map-center-target" title="Centrar en el auxilio">
+          <span>🚨 FOCO AUXILIO</span>
+        </button>
+        <button class="map-action-btn btn-sim-map" id="btn-map-simulate-sos" title="Simular procedimiento de prueba en mapa">
+          <span>⚡ SIMULAR RUTA</span>
+        </button>
+      </div>
+    </main>
+
+    <!-- BARRA DE NAVEGACIÓN INFERIOR -->
+    <nav class="tactical-nav hidden">
+      <button class="nav-item active" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        <span>EMERGENCIAS</span>
+      </button>
+
+      <button class="nav-item" data-view="map">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+        </svg>
+        <span>MAPA TÁCTICO</span>
+      </button>
+
+      <button class="nav-item" data-view="feed">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>RADAR Y FEED</span>
+        <div id="nav-feed-badge" class="nav-badge hidden">!</div>
+      </button>
+    </nav>
+
+    <!-- MODAL ESTROBOSCÓPICO DE ALERTA TÁCTICA (DISEÑO STEALTH EXACTO A SCREEN.PNG) -->
+    <div id="strobe-modal" class="strobe-modal hidden">
+      <!-- TOP BARRA SIGILO & LIVE CHANNEL -->
+      <div class="strobe-topbar">
+        <div class="strobe-logo">
+          <svg viewBox="0 0 24 24" class="shield-icon" fill="currentColor">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+          </svg>
+          <span class="strobe-logo-text">SC</span>
+        </div>
+        <div class="strobe-pills">
+          <button class="pill-sigilo" id="btn-strobe-sigilo">👁️ SIGILO</button>
+          <div class="pill-live"><span class="red-dot"></span>LIVE SOS CHANNEL</div>
+        </div>
+      </div>
+
+      <!-- MAIN TACTICAL CARD -->
+      <div class="strobe-content-card" id="strobe-content-card">
+        <!-- DIAMOND ALERT ICON -->
+        <div class="strobe-diamond-circle" id="strobe-icon-badge">
+          <svg viewBox="0 0 24 24" class="diamond-svg" fill="currentColor">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+          </svg>
+        </div>
+
+        <h2 class="strobe-title" id="strobe-title">¡ COOPERACIÓN !</h2>
+        <div class="strobe-grade" id="strobe-grade">NIVEL DE RESPUESTA: GRADO 1</div>
+
+        <!-- SENDER PRIORITY BOX -->
+        <div class="strobe-sender-box">
+          <div class="strobe-avatar-wrapper">
+            <div class="strobe-avatar" id="strobe-avatar-img">👮‍♂️</div>
+            <div class="strobe-verified-badge">✅</div>
+          </div>
+          <div class="strobe-sender-details">
+            <span class="strobe-sender-label">REMITENTE PRIORITARIO</span>
+            <span class="strobe-caller-name" id="strobe-caller-name">Sargento 1ro M. TORRES VALDES</span>
+            <span class="strobe-sender-id" id="strobe-sender-id">ID: SF-78292-MX</span>
+          </div>
+        </div>
+
+        <!-- LOCATION BAR -->
+        <div class="strobe-location-bar" id="strobe-location-text">
+          <span class="loc-coords">📍 19.4326° N, 99.1332° W</span>
+          <span class="loc-precision">Precisión: 3.2m</span>
+        </div>
+
+
+        <!-- ROUTE BUTTON -->
+        <button id="btn-strobe-open-map" class="btn-strobe-route hidden">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M19 3L13.02 15.01 11.01 10.99 6.99 8.98 19 3z"/>
+          </svg>
+          <span>VER RUTA TÁCTICA EN MAPA INTERNO</span>
+        </button>
+
+        <!-- INTERCOM LABEL & BIG 3D RED PTT BUTTON -->
+        <div class="strobe-intercom-label">INTERCOM TÁCTICO</div>
+        <button id="btn-strobe-ptt" class="btn-ptt tactical-ptt-btn strobe-ptt">
+          <div class="ptt-mic-icon">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+          </div>
+          <span class="ptt-btn-label" id="strobe-ptt-text">PRESIONAR PARA HABLAR</span>
+          <span class="recording-dot hidden" id="strobe-recording-dot"></span>
+        </button>
+
+        <!-- REPRODUCTOR AUDIO ENTRANTE Y WHATSAPP -->
+        <div id="strobe-audio-box" class="strobe-audio-box hidden">
+          <span style="font-size:11px; font-weight:800; color:#38bdf8;">🎙️ NOTA DE VOZ RECIBIDA:</span>
+          <audio id="strobe-audio-player" controls style="width: 100%; height:32px;"></audio>
+        </div>
+
+        <button id="btn-whatsapp-resend" class="btn-whatsapp hidden">
+          <span>📲 COMPARTIR EN GRUPO WHATSAPP</span>
+        </button>
+
+        <!-- CRYPTO FOOTER -->
+        <div class="strobe-crypto-footer">CIFRADO DE PUNTO A PUNTO ACTIVO</div>
+      </div>
+
+      <!-- SLIDE TO DEACTIVATE BOTTOM CAPSULE -->
+      <div class="strobe-deactivate-wrapper" id="btn-stop-alarm" title="Toca o desliza para apagar alarma y cerrar">
+        <div class="strobe-deactivate-slider">
+          <div class="slider-thumb">
+            <span>&gt;&gt;</span>
+          </div>
+          <span class="slider-text">DESLIZAR PARA DESACTIVAR</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Carga de scripts -->
+  <script src="./audio-service.js"></script>
+  <script src="./geo-service.js"></script>
+  <script src="./network-service.js"></script>
+  <script src="./app.js"></script>
+  <script>
+    // Registro y actualización proactiva de Service Worker PWA SAJAUX
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then((registration) => {
+          console.log('[PWA SAJAUX] Service Worker registrado exitosamente con scope:', registration.scope);
+        }).catch((err) => {
+          console.warn('[PWA SAJAUX] Falló el registro de Service Worker:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
